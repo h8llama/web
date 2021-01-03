@@ -1,0 +1,56 @@
+body {
+    font-family: Tahoma, Verdana, sans-serif;
+    background-color: #f0f0f0;
+    color: #4c4c4c;
+    margin-left: 10%;
+    margin-right: 20%;
+    margin-top: 5%;
+}
+
+.header {
+    display: table;
+    background-color: white;
+    text-align: left;
+    padding: 1.5em;
+    overflow: auto;
+    width: 100%;
+    position: sticky;
+    top: 0px;
+}
+
+.header h1 {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+.header img {
+    display: table-cell;
+    vertical-align: middle;
+    align: left;
+}
+
+.main {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+.topic {
+    padding-top: 1em;
+    padding-bottom: 1em;
+}
+
+.boxed {
+    border-style: ridge;
+    padding: 5px;
+    white-space: nowrap;
+}
+
+code {
+    background-color: white;
+}
+
+pre {
+    background-color: white;
+    border-style: ridge;
+    padding: 5px;
+}

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple XMRig</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="./favicon.ico" type="image/png">
+</head>
+<body>
+  <div class="header">
+    <img src="images/logo.png" alt="logo" /> <h1>Auto Building XMRig Miner Docker Image</h1>
+  </div> 
+  <div class="main">
+    <div class="topic">
+      <h2>False flags</h2>
+      <p>The <a href="https://hub.docker.com/r/xmrig/xmrig/">xmrig/xmrig</a> image on <a href="https://hub.docker.com">Dockerhub</a> is not published buy upstream <a href="https://xmrig.com">XMRig</a> developers and is badly out of date [ref git issue <a href=" https://github.com/xmrig/xmrig/issues/2019">#2019</a>]</p>
+    </div>
+    <div class="topic">  
+      <h2>False start</h2>
+      <p>I initially thought maintaining a docker image would be simple but take some maintenance. Based on that I build out some infrastructure with a fee system. So if you came here looking for that it's gone, but so is the extra fee.</p>
+    </div>
+    <h2>Real start</h2>
+    <p>But very soon I realized what I was doing could be automated to virtually nothing using this <a href="https://hub.docker.com/r/h8llama/xmrig/dockerfile">Dockerfile</a></p>
+    <pre>
+# Build in disposable container so run-time container is small
+FROM alpine:latest as build
+
+# Build from master by default but allow build time specification
+ARG ref=master
+ENV my_ref=$ref
+
+# Developers may wish to specify an alternate repository for source
+ARG repo=https://github.com/xmrig/xmrig.git
+ENV my_repo=$repo
+
+RUN set -ex && \
+        # testing required for hwloc
+	echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
+
+RUN set -ex && \
+	apk --no-cache --update add \
+	    coreutils file grep openssl tar binutils \
+	    cmake g++ git linux-headers libpthread-stubs make hwloc-dev@testing \
+	    libuv-dev openssl-dev
+
+WORKDIR /usr/local/src
+
+RUN set -ex && \
+    	git clone $my_repo xmrig && \
+	cd xmrig && git checkout $my_ref && \
+	cmake -B build && \
+	cd build && \
+	make 
+
+# runtime container
+FROM alpine:latest
+
+RUN set -ex && \
+        # testing required for hwloc
+	echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
+
+RUN set -ex && \
+	apk --no-cache --update add \
+	# required libraries packages
+		openssl libuv hwloc@testing
+
+COPY --from=build /usr/local/src/xmrig/build/xmrig /bin/
+
+ENTRYPOINT ["/bin/xmrig"]
+    </pre>
+
+    <p>Since one file is a contribution not a commitment, I ripped out all the extra fee stuff and submitted a <a href="https://github.com/xmrig/xmrig/pull/2018">pull request</a> up stream. if they take it you can setup your own docker hub to auto build from the Dockerfile in upstream master branch, but even if not you just copy that file and build it your self pretty easily.</p>
+  </div>
+
+  <div class="topic">
+    <h2>Building it</h2>
+
+    <p>Currently (2021-01-02) there's a prebuilt demo image of XMRig v6.7.0 at <a href="https://hub.docker.com/r/h8llama/xmrig">h8llama/xmrig</a>.</p>
+    
+    <p>To build the latest released XMRig yourself just copy the <a href="https://github.com/h8llama/xmrig/blob/dev/Dockerfile">Dockerfile</a> to your current working directory and run:</p>
+    
+    <div>
+      <code class="boxed">docker build --tag xmrig .</code>
+    </div>
+
+    <p>You can optionally specify building an alternate tag or branch by specifying the <code>ref</code> build argument for example to build the current <em>dev</em> branch:</p>
+          
+    <div>
+      <code class="boxed">docker build --build-arg ref=dev --tag xmrig:dev .</code>
+    </div>
+
+    <p>The <code>repo</code> build argument allows specifying a different repository, for example if you're working on your own fork:</p>
+
+          
+    <div>
+      <code class="boxed">docker build --build-arg repo=https://github.com/h8llama/xmrig.git ref=dev --tag xmrig:h8llama</code>
+    </div>
+  </div>
+
+    <div class="topic">
+      <h2>Running it</h2>
+
+      <p>Once built it runs just like the XMRig binary and takes the same flag. The simplest case to mine in the <a href="https://www.supportxmr.com">https://www.supportxmr.com</a> pool you only need to substitute your &lt;payment-address&gt; in the following command:</p>
+
+      <div>
+	<code class="boxed">docker run -ti xmrig -u  &lt;payment-address&gt; -k --tls -o pool.supportxmr.com:443</code>
+      </div>
+
+      <p>This runs in the foreground allowing interaction such as 'c' to show pool connections and 'h' to show current hash rates.  To but it in the background substitute <code>-d</code> in place of <code>-ti</code> above.</p>
+
+      <p>A full featured configuration file can also be generated at <a href="https://xmrig.com/wizard">https://xmrig.com/wizard</a> and passed to the container as a "volume"</p>
+      <div>
+	<code class="boxed">docker run -v &lt;path-to-your-congig.json&gt;:/etc/config.json -ti xmrig -c /etc/config.json</code>
+      </div>
+    </div>
+
+    <div class="topic">
+      <h2 id="donations">Donations</h2>
+    
+    <p>It's not much work but 0.01XMR of thanks would be nice just to know if anyone is actually interested this and if I should bother to check that the library dependencies in Dockerfile are kept up to date </p>
+    <p><em>86WLYBenpeRMvFnGef4djbi6Z5t26ocmNgXYeM1ugcdST9iUtSrWcdyQKm1bRRd29t1EhSs62mM9hWYNQ3iDR2TKQdRGua6</em></p>
+    
+  </div>
+
+  <div class="topic">  
+    <h2 id="contact">Contact</h2>
+    <p>email: <a href="mailto:dev@h8llama.com">dev@h8llama.com</a><br />
+     reddit: <a href="https://reddit.com/u/h8llama">h8llama</a></p>
+  </div>
+  </div>
+</body>
+</html>
